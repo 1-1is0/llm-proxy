@@ -21,7 +21,7 @@ services:
       # Restrict malloc arenas to prevent memory fragmentation and growth in Python
       - MALLOC_ARENA_MAX=2
     mem_limit: 768m
-    command: [ "--config", "/app/config.yaml", "--port", "4000" ]
+    command: [ "--config", "/app/config.yaml", "--port", "4000", "--use_v2_migration_resolver" ]
     depends_on:
       - redis
       - db
