@@ -26,9 +26,6 @@ model_list:
       cache_control_injection_points:
         - location: message
           role: system
-      thinking:
-        type: "enabled"
-        budget_tokens: 2048
 
   # Claude Haiku 4.5
   - model_name: claude-haiku-4-5
@@ -57,9 +54,6 @@ model_list:
     litellm_params:
       model: gemini/gemini-3.5-flash
       api_key: "os.environ/GEMINI_API_KEY"
-      thinking:
-        type: "enabled"
-        budget_tokens: 2048
 
   # Gemini 3 Flash
   - model_name: gemini-3-flash
