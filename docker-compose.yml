@@ -18,6 +18,9 @@ services:
       - LITELLM_LOG=${LITELLM_LOG:-INFO}
       # Postgres connection for cost tracking, virtual key/budget management and the /ui dashboard.
       - DATABASE_URL=postgresql://${POSTGRES_USER:-litellm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-litellm}
+      # Restrict malloc arenas to prevent memory fragmentation and growth in Python
+      - MALLOC_ARENA_MAX=2
+    mem_limit: 768m
     command: [ "--config", "/app/config.yaml", "--port", "4000" ]
     depends_on:
       - redis
