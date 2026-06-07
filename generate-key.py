@@ -3,11 +3,8 @@
 record it in keys.secret (gitignored) so issued keys stay tracked locally.
 
 By default (no --models given) the key gets access to every model in
-litellm-config.yaml, with per-model rpm/tpm limits and a daily spend cap
-matching the issuing provider's tier — see PROVIDER_LIMIT_ENV / .env.example.
-LiteLLM has no native "requests per day" enforcement, so the daily figure is
-applied as a per-model USD budget that resets every 24h (closest native
-equivalent to an RPD cap).
+litellm-config.yaml, with per-model rpm/tpm limits matching the issuing
+provider's tier — see PROVIDER_LIMIT_ENV / .env.example.
 
 Usage:
   ./generate-key.py --alias my-team [--models claude-sonnet-4-6,gemini-3.5-flash] \
@@ -31,8 +28,8 @@ PROXY_URL = os.environ.get("LITELLM_BASE_URL", "http://127.0.0.1:4000")
 
 # litellm_params.model prefix -> .env vars holding that provider's tier limits
 PROVIDER_LIMIT_ENV = {
-    "anthropic": ("ANTHROPIC_RPM_LIMIT", "ANTHROPIC_TPM_LIMIT", "ANTHROPIC_DAILY_BUDGET_USD"),
-    "gemini": ("GEMINI_RPM_LIMIT", "GEMINI_TPM_LIMIT", "GEMINI_DAILY_BUDGET_USD"),
+    "anthropic": ("ANTHROPIC_RPM_LIMIT", "ANTHROPIC_TPM_LIMIT"),
+    "gemini": ("GEMINI_RPM_LIMIT", "GEMINI_TPM_LIMIT"),
 }
 
 
@@ -62,24 +59,23 @@ def load_models():
 
 
 def provider_limits(env, provider):
-    """Look up (rpm, tpm, daily_budget_usd) for a provider from .env; None if unset."""
+    """Look up (rpm, tpm) for a provider from .env; None if unset."""
     spec = PROVIDER_LIMIT_ENV.get(provider)
     if not spec:
         return None
-    rpm_key, tpm_key, budget_key = spec
+    rpm_key, tpm_key = spec
     try:
         rpm = int(env[rpm_key])
         tpm = int(env[tpm_key])
-        budget = float(env[budget_key])
     except (KeyError, ValueError):
         return None
-    return rpm, tpm, budget
+    return rpm, tpm
 
 
 def build_provider_matched_limits(env, model_names, all_models):
-    """Build model_rpm_limit / model_tpm_limit / model_max_budget dicts that
+    """Build model_rpm_limit / model_tpm_limit dicts that
     mirror each model's upstream provider tier, for the given model_names."""
-    model_rpm, model_tpm, model_budget = {}, {}, {}
+    model_rpm, model_tpm = {}, {}
     skipped = []
     for name in model_names:
         provider = all_models.get(name)
@@ -87,11 +83,10 @@ def build_provider_matched_limits(env, model_names, all_models):
         if not limits:
             skipped.append(name)
             continue
-        rpm, tpm, daily_budget = limits
+        rpm, tpm = limits
         model_rpm[name] = rpm
         model_tpm[name] = tpm
-        model_budget[name] = {"budget_limit": daily_budget, "time_period": "1d"}
-    return model_rpm, model_tpm, model_budget, skipped
+    return model_rpm, model_tpm, skipped
 
 
 def parse_args():
@@ -116,11 +111,10 @@ def generate_key(master_key, args, env, all_models):
     if args.tpm is not None:
         body["tpm_limit"] = args.tpm
     if args.rpm is None and args.tpm is None:
-        model_rpm, model_tpm, model_budget, skipped = build_provider_matched_limits(env, model_names, all_models)
+        model_rpm, model_tpm, skipped = build_provider_matched_limits(env, model_names, all_models)
         if model_rpm:
             body["model_rpm_limit"] = model_rpm
             body["model_tpm_limit"] = model_tpm
-            body["model_max_budget"] = model_budget
 
     if args.budget is not None:
         body["max_budget"] = args.budget
@@ -136,8 +130,19 @@ def generate_key(master_key, args, env, all_models):
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.load(resp), skipped
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.load(resp), skipped
+    except urllib.error.HTTPError as exc:
+        try:
+            err_body = exc.read().decode("utf-8")
+            err_json = json.loads(err_body)
+            err_msg = err_json.get("error", {}).get("message", "")
+        except Exception:
+            err_msg = ""
+        if err_msg:
+            raise Exception(f"HTTP Error {exc.code}: {err_msg}")
+        raise exc
 
 
 def load_secrets():
@@ -179,7 +184,6 @@ def main():
         "tpm_limit": result.get("tpm_limit"),
         "model_rpm_limit": result.get("model_rpm_limit"),
         "model_tpm_limit": result.get("model_tpm_limit"),
-        "model_max_budget": result.get("model_max_budget"),
         "expires": result.get("expires"),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
