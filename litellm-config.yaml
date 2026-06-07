@@ -48,32 +48,50 @@ model_list:
     litellm_params:
       model: gemini/gemini-3.5-flash
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
 
   # Gemini 3.5 Flash (Thinking / Reasoning Enabled)
   - model_name: gemini-3.5-flash-thinking
     litellm_params:
       model: gemini/gemini-3.5-flash
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
 
   # Gemini 3 Flash
   - model_name: gemini-3-flash
     litellm_params:
       model: gemini/gemini-3-flash-preview
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
   - model_name: gemini-3-flash-preview
     litellm_params:
       model: gemini/gemini-3-flash-preview
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
 
   # Gemini 3.1 Pro
   - model_name: gemini-3.1-pro
     litellm_params:
       model: gemini/gemini-3.1-pro-preview
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
   - model_name: gemini-3.1-pro-preview
     litellm_params:
       model: gemini/gemini-3.1-pro-preview
       api_key: "os.environ/GEMINI_API_KEY"
+      cache_control_injection_points:
+        - location: message
+          role: system
 
 
 litellm_settings:
