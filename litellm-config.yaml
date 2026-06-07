@@ -33,6 +33,32 @@ model_list:
         - location: message
           role: system
 
+  # Gemini 3.5 Flash
+  - model_name: gemini-3.5-flash
+    litellm_params:
+      model: gemini/gemini-3.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+
+  # Gemini 3 Flash
+  - model_name: gemini-3-flash
+    litellm_params:
+      model: gemini/gemini-3-flash-preview
+      api_key: "os.environ/GEMINI_API_KEY"
+  - model_name: gemini-3-flash-preview
+    litellm_params:
+      model: gemini/gemini-3-flash-preview
+      api_key: "os.environ/GEMINI_API_KEY"
+
+  # Gemini 3.1 Pro
+  - model_name: gemini-3.1-pro
+    litellm_params:
+      model: gemini/gemini-3.1-pro-preview
+      api_key: "os.environ/GEMINI_API_KEY"
+  - model_name: gemini-3.1-pro-preview
+    litellm_params:
+      model: gemini/gemini-3.1-pro-preview
+      api_key: "os.environ/GEMINI_API_KEY"
+
 
 litellm_settings:
   drop_params: true  # Drop unsupported params (like OpenAI specific params) instead of failing

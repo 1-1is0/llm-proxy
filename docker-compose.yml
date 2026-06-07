@@ -9,6 +9,8 @@ services:
     environment:
       # API Key for Anthropic models. Will be loaded from the host's .env file.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # API Key for Gemini models. Will be loaded from the host's .env file.
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       # Optional: Master API key to secure access to the LiteLLM proxy itself.
       # If not set, the proxy is open/unsecured.
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
