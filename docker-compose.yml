@@ -1,0 +1,62 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm-proxy
+    ports:
+      - "127.0.0.1:4000:4000" # Exposes LiteLLM only locally on the host
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro # Mount the configuration file as read-only
+    environment:
+      # API Key for Anthropic models. Will be loaded from the host's .env file.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Optional: Master API key to secure access to the LiteLLM proxy itself.
+      # If not set, the proxy is open/unsecured.
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+      # Optional log level setting (DEBUG, INFO, WARNING, ERROR)
+      - LITELLM_LOG=${LITELLM_LOG:-INFO}
+    command: [ "--config", "/app/config.yaml", "--port", "4000" ]
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - NGINX_ENVSUBST_FILTER=DOMAIN
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/html:ro
+    depends_on:
+      - litellm
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/html
+    entrypoint: "/bin/sh -c 'trap exit 0 SIGTERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  # --- OPTIONAL DATABASE BACKEND FOR USER MANAGEMENT & KEY TRACKING ---
+  # If you want to use LiteLLM's dashboard/database features, uncomment the service below,
+  # add a DATABASE_URL env to the litellm service, and change the image to ghcr.io/berriai/litellm:main-latest-database
+  #
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: litellm-db
+  #   environment:
+  #     POSTGRES_DB: litellm
+  #     POSTGRES_USER: litellm
+  #     POSTGRES_PASSWORD: litellm_db_secure_password_here
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #
+  # volumes:
+  #   pgdata:
+

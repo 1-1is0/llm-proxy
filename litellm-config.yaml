@@ -1,0 +1,74 @@
+model_list:
+  # Claude 3.5 Sonnet (Latest / v2)
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: claude-3-5-sonnet-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-5-sonnet-latest
+    litellm_params:
+      model: claude-3-5-sonnet-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-5-sonnet
+    litellm_params:
+      model: claude-3-5-sonnet-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  # Claude 3.5 Sonnet (v1)
+  - model_name: claude-3-5-sonnet-20240620
+    litellm_params:
+      model: claude-3-5-sonnet-20240620
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  # Claude 3.5 Haiku
+  - model_name: claude-3-5-haiku-20241022
+    litellm_params:
+      model: claude-3-5-haiku-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-5-haiku-latest
+    litellm_params:
+      model: claude-3-5-haiku-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-5-haiku
+    litellm_params:
+      model: claude-3-5-haiku-20241022
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  # Claude 3 Opus
+  - model_name: claude-3-opus-20240229
+    litellm_params:
+      model: claude-3-opus-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-opus-latest
+    litellm_params:
+      model: claude-3-opus-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-opus
+    litellm_params:
+      model: claude-3-opus-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  # Claude 3 Sonnet
+  - model_name: claude-3-sonnet-20240229
+    litellm_params:
+      model: claude-3-sonnet-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-sonnet
+    litellm_params:
+      model: claude-3-sonnet-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  # Claude 3 Haiku
+  - model_name: claude-3-haiku-20240307
+    litellm_params:
+      model: claude-3-haiku-20240307
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: claude-3-haiku
+    litellm_params:
+      model: claude-3-haiku-20240307
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+litellm_settings:
+  drop_params: true  # Drop unsupported params (like OpenAI specific params) instead of failing
+
+general_settings:
+  master_key: "os.environ/LITELLM_MASTER_KEY"  # Optional: Enforces key verification if set
