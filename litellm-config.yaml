@@ -17,6 +17,20 @@ model_list:
         - location: message
           role: system
 
+  # Claude Sonnet 4.6 (Thinking / Reasoning Enabled)
+  - model_name: claude-sonnet-4-6-thinking
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+      max_tokens: 8192
+      cache_control_injection_points:
+        - location: message
+          role: system
+      extra_body:
+        thinking:
+          type: "enabled"
+          budget_tokens: 2048
+
   # Claude Haiku 4.5
   - model_name: claude-haiku-4-5
     litellm_params:
@@ -38,6 +52,15 @@ model_list:
     litellm_params:
       model: gemini/gemini-3.5-flash
       api_key: "os.environ/GEMINI_API_KEY"
+
+  # Gemini 3.5 Flash (Thinking / Reasoning Enabled)
+  - model_name: gemini-3.5-flash-thinking
+    litellm_params:
+      model: gemini/gemini-3.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+      extra_body:
+        thinking_config:
+          thinking_budget: 2048
 
   # Gemini 3 Flash
   - model_name: gemini-3-flash
