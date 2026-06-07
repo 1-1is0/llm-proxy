@@ -52,61 +52,69 @@ if [ -z "$RESOLVED_IP" ]; then
 fi
 
 if [ "$RESOLVED_IP" != "$PUBLIC_IP" ]; then
-    echo "Error: DNS resolution mismatch."
+    echo "Warning: DNS resolution mismatch."
     echo "  $DOMAIN currently resolves to: $RESOLVED_IP"
     echo "  Expected Public IP from env:  $PUBLIC_IP"
-    echo "Please ensure the DNS A record points to $PUBLIC_IP and has propagated."
-    exit 1
+    echo "  Note: If you are using Cloudflare DNS Proxy (Orange Cloud), this mismatch is normal."
+    echo "  We will proceed, but make sure Cloudflare is forwarding HTTP traffic to your VPS."
+    echo "  Press Ctrl+C to abort if this is incorrect, or wait 5 seconds to proceed..."
+    sleep 5
+else
+    echo "DNS verification passed! $DOMAIN correctly points to $PUBLIC_IP."
 fi
 
-echo "DNS verification passed! $DOMAIN correctly points to $PUBLIC_IP."
+# 3. Create SSL directory
+echo "Creating SSL configuration directory..."
+mkdir -p nginx/ssl
 
-# 3. Create necessary directories
-echo "Creating config directories..."
-mkdir -p certbot/conf/live/$DOMAIN
-mkdir -p certbot/www
+# 4. Check if SSL certificate exists
+CERT_EXISTS=false
+IS_DUMMY=false
 
-# 4. Check if we already have a real certificate
-if [ -f "certbot/conf/live/$DOMAIN/privkey.pem" ] && [ -f "certbot/conf/live/$DOMAIN/fullchain.pem" ]; then
-    # Check if it's self-signed or real
-    # If the certificate contains "localhost" or isn't issued by Let's Encrypt, we should replace it
-    ISSUER=$(openssl x509 -issuer -noout -in certbot/conf/live/$DOMAIN/fullchain.pem || echo "")
-    if [[ "$ISSUER" == *"Let's Encrypt"* ]] || [[ "$ISSUER" == *"R3"* ]] || [[ "$ISSUER" == *"E1"* ]]; then
-        echo "A valid SSL certificate issued by Let's Encrypt already exists."
-        echo "Skipping initialization. Run 'docker compose up -d' to start the services."
-        exit 0
-    else
-        echo "Found existing self-signed/dummy certificate. Proceeding to obtain real SSL..."
+if [ -f "nginx/ssl/cert.pem" ] && [ -f "nginx/ssl/key.pem" ]; then
+    CERT_EXISTS=true
+    # Check if the certificate is self-signed/dummy (issued by localhost)
+    ISSUER=$(openssl x509 -issuer -noout -in nginx/ssl/cert.pem || echo "")
+    if [[ "$ISSUER" == *"localhost"* ]] || [[ "$ISSUER" == *"CN=localhost"* ]]; then
+        IS_DUMMY=true
     fi
 fi
 
-# 5. Create dummy certificate if none exists
-if [ ! -f "certbot/conf/live/$DOMAIN/privkey.pem" ]; then
-    echo "Generating dummy self-signed certificate for Nginx startup..."
-    openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
-        -keyout certbot/conf/live/$DOMAIN/privkey.pem \
-        -out certbot/conf/live/$DOMAIN/fullchain.pem \
+if [ "$CERT_EXISTS" = false ]; then
+    echo "No SSL certificate found at nginx/ssl/cert.pem."
+    echo "Generating a temporary self-signed certificate for initial Nginx startup..."
+    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+        -keyout nginx/ssl/key.pem \
+        -out nginx/ssl/cert.pem \
         -subj "/CN=localhost"
+    IS_DUMMY=true
 fi
 
-# 6. Start Nginx
-echo "Starting Nginx in background..."
+# 5. Start Nginx
+echo "Starting Nginx in the background..."
 docker compose up -d nginx
 
-# 7. Run Certbot to get the real certificate
-echo "Running Certbot to request real Let's Encrypt SSL certificate..."
-docker compose run --rm certbot certonly \
-    --webroot -w /var/www/html \
-    --email "$EMAIL" \
-    -d "$DOMAIN" \
-    --agree-tos --no-eff-email \
-    --force-renewal
-
-# 8. Reload Nginx configuration to pick up the new certificate
-echo "Reloading Nginx to apply real SSL certificate..."
-docker compose exec nginx nginx -s reload
-
+# 6. Output status and instructions
 echo "========================================================="
-echo " SSL Initialization completed successfully!"
-echo " Your application is now served securely at: https://$DOMAIN"
+if [ "$IS_DUMMY" = true ]; then
+    echo " STATUS: RUNNING (WITH TEMPORARY SELF-SIGNED SSL)"
+    echo "========================================================="
+    echo " A temporary certificate has been installed so Nginx can start."
+    echo " To make SSL fully valid under Cloudflare DNS Proxying:"
+    echo " 1. Go to your Cloudflare Dashboard -> SSL/TLS -> Origin Server."
+    echo " 2. Click 'Create Certificate' for: $DOMAIN"
+    echo " 3. Copy the PEM Certificate content and save it to:"
+    echo "    nginx/ssl/cert.pem"
+    echo " 4. Copy the Private Key content and save it to:"
+    echo "    nginx/ssl/key.pem"
+    echo " 5. Change SSL/TLS Encryption Mode in Cloudflare to: Full (strict)"
+    echo " 6. Reload Nginx configuration to apply the new certificates:"
+    echo "    docker compose exec nginx nginx -s reload"
+else
+    echo " STATUS: SECURED (WITH VALID CLOUDFLARE ORIGIN SSL)"
+    echo "========================================================="
+    echo " Nginx has successfully started using your custom SSL certificates."
+    echo " Your application is now served securely at: https://$DOMAIN"
+    echo " Make sure Cloudflare SSL/TLS Encryption Mode is set to 'Full (strict)'."
+fi
 echo "========================================================="

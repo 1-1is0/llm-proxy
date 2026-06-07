@@ -28,19 +28,10 @@ services:
       - NGINX_ENVSUBST_FILTER=DOMAIN
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/html:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - litellm
     restart: unless-stopped
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/html
-    entrypoint: "/bin/sh -c 'trap exit 0 SIGTERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
   # --- OPTIONAL DATABASE BACKEND FOR USER MANAGEMENT & KEY TRACKING ---
   # If you want to use LiteLLM's dashboard/database features, uncomment the service below,
